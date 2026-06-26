@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import type { Resume, ResumeData, ResumeTemplate, SectionId, ResumeSettings } from "@/lib/types/resume";
 import {
   makeBlankResumeData, makeBlankContact, makeBlankSkills,
-  getEffectiveSettings, RESUME_FONTS, ALL_SECTION_IDS,
+  getEffectiveSettings, RESUME_FONTS, ALL_SECTION_IDS, normalizeResumeData
 } from "@/lib/types/resume";
 import { updateResumeData, updateResumeMeta, deleteResume } from "@/lib/actions/resume";
 
@@ -82,7 +82,7 @@ export function BuilderShell({ resume }: Props) {
   const router  = useRouter();
 
   // ── Core state ───────────────────────────────────────────────────────────
-  const [data, setData]           = useState<ResumeData>(resume.resume_data ?? makeBlankResumeData());
+  const [data, setData]           = useState<ResumeData>(normalizeResumeData(resume.resume_data));
   const [template, setTemplate]   = useState<ResumeTemplate>(resume.template);
   const [title, setTitle]         = useState(resume.title);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");

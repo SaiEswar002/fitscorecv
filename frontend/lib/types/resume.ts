@@ -203,3 +203,46 @@ export function makeBlankResumeData(): ResumeData {
     settings:       makeBlankSettings(),
   };
 }
+
+/** 
+ * Safely parses data from the database, falling back to defaults if fields are missing.
+ * Also handles migrating the experimental "sections" array back to the flat structure.
+ */
+export function normalizeResumeData(data: any): ResumeData {
+  const blank = makeBlankResumeData();
+  if (!data) return blank;
+
+  // Handle rollback from experimental 'sections' array
+  if (data.sections && Array.isArray(data.sections)) {
+    const contactSec = data.sections.find((s: any) => s.type === "contact");
+    const summarySec = data.sections.find((s: any) => s.type === "summary");
+    const expSecs = data.sections.filter((s: any) => s.type === "experience");
+    const eduSecs = data.sections.filter((s: any) => s.type === "education");
+    const skillSec = data.sections.find((s: any) => s.type === "skills");
+    const certSecs = data.sections.filter((s: any) => s.type === "certifications");
+    const projSecs = data.sections.filter((s: any) => s.type === "projects");
+
+    return {
+      contact: contactSec?.items ?? blank.contact,
+      summary: summarySec?.items ?? blank.summary,
+      experience: expSecs.flatMap((s: any) => s.items || []),
+      education: eduSecs.flatMap((s: any) => s.items || []),
+      skills: skillSec?.items ?? blank.skills,
+      certifications: certSecs.flatMap((s: any) => s.items || []),
+      projects: projSecs.flatMap((s: any) => s.items || []),
+      settings: data.settings ?? blank.settings,
+    };
+  }
+
+  // Normal fallback
+  return {
+    contact:        data.contact        ?? blank.contact,
+    summary:        data.summary        ?? blank.summary,
+    experience:     data.experience     ?? blank.experience,
+    education:      data.education      ?? blank.education,
+    skills:         data.skills         ?? blank.skills,
+    certifications: data.certifications ?? blank.certifications,
+    projects:       data.projects       ?? blank.projects,
+    settings:       data.settings       ?? blank.settings,
+  };
+}

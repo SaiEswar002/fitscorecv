@@ -28,7 +28,8 @@ export default async function DashboardLayout({
       style={{ background: "var(--color-surface)" }}
     >
       <DashboardNav user={user} />
-      <main className="flex-1 container-max px-4 md:px-6 py-8 w-full">
+      {/* Builder pages set data-full-width and escape via their own layout */}
+      <main className="flex-1 w-full" id="dashboard-main">
         {children}
       </main>
     </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { ChevronDown, LogOut, User, Settings } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -53,6 +53,7 @@ function Avatar({ user }: { user: SupabaseUser }) {
 
 export function DashboardNav({ user }: DashboardNavProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -77,9 +78,25 @@ export function DashboardNav({ user }: DashboardNavProps) {
           font-weight: 500;
           text-decoration: none;
           transition: color 0.2s ease;
+          position: relative;
+          padding-bottom: 2px;
         }
         .dashboard-nav-link:hover {
           color: var(--color-cta);
+        }
+        .dashboard-nav-link.active {
+          color: var(--color-cta);
+          font-weight: 600;
+        }
+        .dashboard-nav-link.active::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: var(--color-cta);
+          border-radius: 1px;
         }
         .dropdown-item {
           display: flex;
@@ -134,16 +151,19 @@ export function DashboardNav({ user }: DashboardNavProps) {
             </span>
           </Link>
 
-          {/* Nav links */}
+          {/* Nav links — only link to routes that exist */}
           <nav className="hidden md:flex items-center gap-5" aria-label="Dashboard navigation">
-            <Link href="/dashboard" className="dashboard-nav-link">
+            <Link
+              href="/dashboard"
+              className={`dashboard-nav-link${pathname === "/dashboard" ? " active" : ""}`}
+            >
               Dashboard
             </Link>
-            <Link href="/builder" className="dashboard-nav-link">
+            <Link
+              href="/builder"
+              className={`dashboard-nav-link${pathname.startsWith("/builder") ? " active" : ""}`}
+            >
               Resume Builder
-            </Link>
-            <Link href="/ats" className="dashboard-nav-link">
-              ATS Checker
             </Link>
           </nav>
 

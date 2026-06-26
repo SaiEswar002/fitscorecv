@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ChevronDown, LogOut, User, Settings } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 interface DashboardNavProps {
   user: SupabaseUser;
@@ -135,18 +136,13 @@ export function DashboardNav({ user }: DashboardNavProps) {
         }}
       >
         <div className="container-max px-4 md:px-6 h-14 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-1 select-none">
-            <span
-              className="text-lg font-black tracking-tight"
-              style={{ color: "var(--color-heading)" }}
-            >
+          {/* Logo — always links to landing page */}
+          <Link href="/" className="flex items-center gap-1 select-none" aria-label="FitScoreCV — Home">
+            <span className="text-lg font-black tracking-tight" style={{ color: "var(--color-heading)" }}>
               FitScore
             </span>
-            <span
-              className="text-lg font-black tracking-tight px-1 py-0.5 rounded text-white"
-              style={{ background: "var(--color-cta)", lineHeight: 1 }}
-            >
+            <span className="text-lg font-black tracking-tight px-1 py-0.5 rounded text-white"
+              style={{ background: "var(--color-cta)", lineHeight: 1 }}>
               CV
             </span>
           </Link>
@@ -167,9 +163,12 @@ export function DashboardNav({ user }: DashboardNavProps) {
             </Link>
           </nav>
 
-          {/* User menu */}
-          <div className="relative">
-            <button
+          {/* Right section: ThemeToggle + User menu */}
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            
+            <div className="relative">
+              <button
               onClick={() => setDropdownOpen((prev) => !prev)}
               className="flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all duration-200 hover:bg-opacity-80"
               style={{
@@ -265,6 +264,7 @@ export function DashboardNav({ user }: DashboardNavProps) {
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
       </header>

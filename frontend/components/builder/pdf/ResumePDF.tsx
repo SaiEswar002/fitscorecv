@@ -1,7 +1,24 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import type { ResumeData, ResumeTemplate } from "@/lib/types/resume";
+import type { ResumeData, ResumeTemplate, ResumeSettings } from "@/lib/types/resume";
+import { makeBlankSettings } from "@/lib/types/resume";
 
-interface Props { data: ResumeData; template: ResumeTemplate; title: string; }
+interface Props { data: ResumeData; template: ResumeTemplate; title: string; settings?: ResumeSettings; }
+
+// @react-pdf/renderer only supports built-in fonts without registration
+// Map user font choice to the closest built-in
+const PDF_FONT_MAP: Record<string, string> = {
+  "Arial":            "Helvetica",
+  "Georgia":          "Times-Roman",
+  "Times New Roman":  "Times-Roman",
+  "Calibri":          "Helvetica",
+  "Cambria":          "Times-Roman",
+};
+
+const PDF_MARGIN_MAP: Record<string, string> = {
+  narrow: "20pt 20pt",
+  normal: "28pt 36pt",
+  wide:   "36pt 52pt",
+};
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const base = StyleSheet.create({
@@ -17,13 +34,17 @@ const base = StyleSheet.create({
   body: { lineHeight: 1.4, marginBottom: 2 },
 });
 
-// ── Classic PDF ───────────────────────────────────────────────────────────────
-function ClassicPDF({ data }: { data: ResumeData }) {
+// ── Classic PDF ─────────────────────────────────────────────────────────────
+type StyleOverrides = { pageStyle?: object; boldStyle?: object; italicStyle?: object; };
+function ClassicPDF({ data, pageStyle, boldStyle, italicStyle }: { data: ResumeData } & StyleOverrides) {
   const { contact, summary, experience, education, skills, certifications, projects } = data;
   const allSkills = [...skills.technical, ...skills.tools, ...skills.soft];
+  const pg   = { ...base.page, ...pageStyle };
+  const bd   = { ...base.bold, ...boldStyle };
+  const it   = { ...base.italic, ...italicStyle };
 
   return (
-    <Page size="A4" style={base.page}>
+    <Page size="A4" style={pg}>
       {contact.name && (
         <View style={{ marginBottom: 6, textAlign: "center" }}>
           <Text style={base.name}>{contact.name}</Text>
@@ -89,14 +110,16 @@ function ClassicPDF({ data }: { data: ResumeData }) {
   );
 }
 
-// ── Minimal PDF (same structure as Classic but lighter borders) ───────────────
-function MinimalPDF({ data }: { data: ResumeData }) {
+// ── Minimal PDF (same structure as Classic but lighter borders) ─────────────
+function MinimalPDF({ data, pageStyle, boldStyle }: { data: ResumeData } & StyleOverrides) {
   const { contact, summary, experience, education, skills, certifications, projects } = data;
   const allSkills = [...skills.technical, ...skills.tools, ...skills.soft];
+  const pg       = { ...base.page, ...pageStyle };
+  const bd       = { ...base.bold, ...boldStyle };
   const minTitle = { ...base.sectionTitle, borderBottomColor: "#999" };
 
   return (
-    <Page size="A4" style={base.page}>
+    <Page size="A4" style={pg}>
       {contact.name && (
         <View style={{ marginBottom: 8 }}>
           <Text style={base.name}>{contact.name}</Text>
@@ -111,7 +134,7 @@ function MinimalPDF({ data }: { data: ResumeData }) {
         {experience.map(exp => (
           <View key={exp.id} style={{ marginBottom: 7 }}>
             <View style={base.row}>
-              <Text style={base.bold}>{exp.title}{exp.company ? `, ${exp.company}` : ""}</Text>
+              <Text style={bd}>{exp.title}{exp.company ? `, ${exp.company}` : ""}</Text>
               <Text style={base.small}>{exp.startDate}{exp.startDate ? "–" : ""}{exp.current ? "Present" : exp.endDate}</Text>
             </View>
             {exp.bullets.filter(b => b.text).map(b => <Text key={b.id} style={base.bullet}>- {b.text}</Text>)}
@@ -123,7 +146,7 @@ function MinimalPDF({ data }: { data: ResumeData }) {
         {education.map(edu => (
           <View key={edu.id} style={{ marginBottom: 5 }}>
             <View style={base.row}>
-              <Text style={base.bold}>{edu.degree}{edu.school ? `, ${edu.school}` : ""}</Text>
+              <Text style={bd}>{edu.degree}{edu.school ? `, ${edu.school}` : ""}</Text>
               <Text style={base.small}>{edu.graduationYear}</Text>
             </View>
           </View>
@@ -138,7 +161,7 @@ function MinimalPDF({ data }: { data: ResumeData }) {
         <Text style={minTitle}>Projects</Text>
         {projects.map(proj => (
           <View key={proj.id} style={{ marginBottom: 5 }}>
-            <Text style={base.bold}>{proj.name}{proj.url ? ` (${proj.url})` : ""}</Text>
+            <Text style={bd}>{proj.name}{proj.url ? ` (${proj.url})` : ""}</Text>
             {proj.description && <Text style={base.body}>{proj.description}</Text>}
           </View>
         ))}
@@ -147,13 +170,14 @@ function MinimalPDF({ data }: { data: ResumeData }) {
   );
 }
 
-// ── Modern PDF ────────────────────────────────────────────────────────────────
-function ModernPDF({ data }: { data: ResumeData }) {
+// ── Modern PDF ─────────────────────────────────────────────────────────────
+function ModernPDF({ data, pageStyle, boldStyle }: { data: ResumeData } & StyleOverrides) {
   const ACCENT = "#BE1A1A";
   const { contact, summary, experience, education, skills, certifications, projects } = data;
+  const bd = { ...base.bold, ...boldStyle };
 
   return (
-    <Page size="A4" style={{ ...base.page, flexDirection: "row", padding: 0 }}>
+    <Page size="A4" style={{ ...base.page, ...pageStyle, flexDirection: "row", padding: 0 }}>
       {/* Sidebar */}
       <View style={{ width: "30%", backgroundColor: "#1a1a1a", padding: "24pt 14pt", color: "#f0f0f0" }}>
         {contact.name && <Text style={{ fontSize: 13, fontFamily: "Helvetica-Bold", color: "#ffffff", marginBottom: 12 }}>{contact.name}</Text>}
@@ -222,12 +246,23 @@ function ModernPDF({ data }: { data: ResumeData }) {
 }
 
 // ── Root document ─────────────────────────────────────────────────────────────
-export function ResumePDF({ data, template, title }: Props) {
+export function ResumePDF({ data, template, title, settings }: Props) {
+  const s      = settings ?? makeBlankSettings();
+  const font   = PDF_FONT_MAP[s.fontFamily] ?? "Helvetica";
+  const fontBd = font === "Times-Roman" ? "Times-Bold" : "Helvetica-Bold";
+  const fontIt = font === "Times-Roman" ? "Times-Italic" : "Helvetica-Oblique";
+  const margin = PDF_MARGIN_MAP[s.margins] ?? PDF_MARGIN_MAP["normal"];
+
+  // Build per-document overrides
+  const pageStyle = { ...base.page, fontFamily: font, fontSize: s.fontSize, lineHeight: s.lineSpacing, padding: margin };
+  const boldStyle = { fontFamily: fontBd };
+  const italicStyle = { fontFamily: fontIt };
+
   return (
     <Document title={title} author={data.contact.name} subject="Resume">
-      {template === "modern" ? <ModernPDF data={data} /> :
-        template === "minimal" ? <MinimalPDF data={data} /> :
-          <ClassicPDF data={data} />}
+      {template === "modern"  ? <ModernPDF  data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} /> :
+       template === "minimal" ? <MinimalPDF data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} /> :
+                                <ClassicPDF data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} />}
     </Document>
   );
 }

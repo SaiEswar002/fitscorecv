@@ -145,6 +145,61 @@ export async function deleteResume(id: string): Promise<void> {
   revalidatePath("/dashboard");
 }
 
+/** Duplicate a resume and return the new ID. */
+export async function duplicateResume(id: string): Promise<string> {
+  const { supabase, user } = await getAuthedClient();
+
+  const { data: original, error: fetchError } = await supabase
+    .from("resumes")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !original) throw new Error("Resume not found");
+
+  const { data, error } = await supabase
+    .from("resumes")
+    .insert({
+      user_id:     user.id,
+      title:       `${original.title} (Copy)`,
+      template:    original.template,
+      status:      "draft",
+      resume_data: original.resume_data,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/builder");
+  return data.id;
+}
+
+/** List resumes — metadata only (no resume_data blob) for dashboard listing. */
+export async function listResumesMeta(): Promise<Omit<Resume, "resume_data">[]> {
+  const { supabase } = await getAuthedClient();
+
+  const { data, error } = await supabase
+    .from("resumes")
+    .select("id, user_id, title, template, status, created_at, updated_at")
+    .order("updated_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data.map((row) => ({
+    id:         row.id,
+    user_id:    row.user_id,
+    title:      row.title,
+    template:   row.template as ResumeTemplate,
+    status:     row.status as "draft" | "complete",
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }));
+}
+
+/** Create a genuinely new blank resume (always fresh, never reopens existing). */
+export async function createNewResume(title = "My Resume"): Promise<string> {
+  return createResume(title);
+}
+
 /** Get the most recent resume, or create one if none exist. Returns the ID. */
 export async function getOrCreateLatestResume(): Promise<string> {
   const { supabase } = await getAuthedClient();
@@ -159,3 +214,4 @@ export async function getOrCreateLatestResume(): Promise<string> {
   if (data?.id) return data.id;
   return createResume();
 }
+

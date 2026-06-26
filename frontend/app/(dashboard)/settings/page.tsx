@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Settings } from "lucide-react";
+import { AppearanceSettings } from "@/components/dashboard/AppearanceSettings";
 
 export const metadata: Metadata = {
   title: "Settings — FitScoreCV",
@@ -8,10 +9,12 @@ export const metadata: Metadata = {
 
 export default function SettingsPage() {
   return (
-    <div className="container-max px-4 md:px-6 py-10 max-w-2xl">
-      <h1 className="text-2xl font-black mb-8" style={{ color: "var(--color-heading)" }}>
+    <div className="container-max px-4 md:px-6 py-10 max-w-2xl flex flex-col gap-6">
+      <h1 className="text-2xl font-black" style={{ color: "var(--color-heading)" }}>
         Settings
       </h1>
+
+      <AppearanceSettings />
 
       <div className="rounded-2xl p-10 card-glass flex flex-col items-center gap-4 text-center">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center"

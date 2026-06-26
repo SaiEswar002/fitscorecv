@@ -1,15 +1,22 @@
 import type { ResumeData } from "@/lib/types/resume";
+import { getEffectiveSettings, FONT_CSS_MAP, MARGIN_PX_MAP } from "@/lib/types/resume";
 
 interface Props { data: ResumeData; }
 
 // Ultra-clean, maximum ATS compatibility — pure text, no visual decoration
 export function MinimalTemplate({ data }: Props) {
   const { contact, summary, experience, education, skills, certifications, projects } = data;
+  const settings  = getEffectiveSettings(data);
   const allSkills = [...skills.technical, ...skills.tools, ...skills.soft];
 
   return (
-    <div className="p-[28px] text-[9.5pt] text-[#111] leading-[1.5]"
-      style={{ fontFamily: "'Calibri', 'Arial', sans-serif" }}>
+    <div style={{
+      fontFamily: FONT_CSS_MAP[settings.fontFamily] ?? FONT_CSS_MAP["Arial"],
+      fontSize:   `${settings.fontSize}pt`,
+      lineHeight: settings.lineSpacing,
+      padding:    MARGIN_PX_MAP[settings.margins] ?? MARGIN_PX_MAP["normal"],
+      color:      "#111",
+    }}>
 
       {/* Header */}
       {contact.name && (

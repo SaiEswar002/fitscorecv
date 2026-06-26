@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, X, Sun, Moon, ChevronDown, LayoutDashboard, LogOut } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Menu, X, ChevronDown, LayoutDashboard, LogOut } from "lucide-react";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -42,36 +42,6 @@ function Logo() {
         CV
       </span>
     </Link>
-  );
-}
-
-// ── Theme Toggle ──────────────────────────────────────────────────────────────
-
-function ThemeToggle() {
-  const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted) {
-    return (
-      <div className="w-9 h-9 rounded-lg" style={{ background: "var(--color-surface-elevated)" }} />
-    );
-  }
-
-  const isDark = resolvedTheme === "dark";
-  return (
-    <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
-      style={{
-        background: "var(--color-surface-elevated)",
-        border: "1px solid var(--color-border)",
-        color: "var(--color-heading)",
-      }}
-      aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
-    >
-      {isDark ? <Sun className="w-4 h-4" aria-hidden="true" /> : <Moon className="w-4 h-4" aria-hidden="true" />}
-    </button>
   );
 }
 

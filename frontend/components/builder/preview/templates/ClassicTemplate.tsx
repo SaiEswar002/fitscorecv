@@ -1,21 +1,32 @@
 import type { ResumeData } from "@/lib/types/resume";
+import { getEffectiveSettings, FONT_CSS_MAP, MARGIN_PX_MAP } from "@/lib/types/resume";
 
 interface Props { data: ResumeData; }
 
 // ATS-safe single-column classic layout
 export function ClassicTemplate({ data }: Props) {
   const { contact, summary, experience, education, skills, certifications, projects } = data;
+  const settings  = getEffectiveSettings(data);
   const allSkills = [...(skills.technical ?? []), ...(skills.tools ?? []), ...(skills.soft ?? [])];
 
+  const rootStyle: React.CSSProperties = {
+    fontFamily: FONT_CSS_MAP[settings.fontFamily] ?? FONT_CSS_MAP["Arial"],
+    fontSize:   `${settings.fontSize}pt`,
+    lineHeight: settings.lineSpacing,
+    padding:    MARGIN_PX_MAP[settings.margins] ?? MARGIN_PX_MAP["normal"],
+    color:      "#1a1a1a",
+  };
+
   return (
-    <div className="font-serif text-[10pt] text-[#1a1a1a] leading-[1.45] p-[32px]"
-      style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+    <div style={rootStyle}>
 
       {/* Header */}
       {contact.name && (
-        <div className="text-center mb-[14px]">
-          <h1 className="text-[22pt] font-bold tracking-tight text-[#1a1a1a]">{contact.name}</h1>
-          <p className="text-[9pt] text-[#444] mt-[4px] flex flex-wrap justify-center gap-x-3 gap-y-0.5">
+        <div style={{ textAlign: "center", marginBottom: "14px" }}>
+          <h1 style={{ fontSize: "22pt", fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>
+            {contact.name}
+          </h1>
+          <p style={{ fontSize: "9pt", color: "#444", marginTop: "4px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0 12px" }}>
             {[contact.email, contact.phone, contact.location, contact.linkedin, contact.website]
               .filter(Boolean).map((v, i) => <span key={i}>{v}</span>)}
           </p>
@@ -25,22 +36,32 @@ export function ClassicTemplate({ data }: Props) {
       <Divider />
 
       {/* Summary */}
-      {summary && <Section title="Professional Summary"><p className="text-[9.5pt]">{summary}</p></Section>}
+      {summary && (
+        <Section title="Professional Summary">
+          <p style={{ fontSize: `${settings.fontSize - 0.5}pt` }}>{summary}</p>
+        </Section>
+      )}
 
       {/* Experience */}
       {experience.length > 0 && (
         <Section title="Work Experience">
           {experience.map((exp) => (
-            <div key={exp.id} className="mb-[10px]">
-              <div className="flex justify-between items-baseline">
-                <span className="font-bold">{exp.title}</span>
-                <span className="text-[8.5pt] text-[#555]">{exp.startDate}{exp.startDate ? " – " : ""}{exp.current ? "Present" : exp.endDate}</span>
+            <div key={exp.id} style={{ marginBottom: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontWeight: 700 }}>{exp.title}</span>
+                <span style={{ fontSize: "8.5pt", color: "#555" }}>
+                  {exp.startDate}{exp.startDate ? " – " : ""}{exp.current ? "Present" : exp.endDate}
+                </span>
               </div>
-              <div className="flex justify-between items-baseline mb-[3px]">
-                <span className="italic text-[#444]">{exp.company}{exp.location ? `, ${exp.location}` : ""}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "3px" }}>
+                <span style={{ fontStyle: "italic", color: "#444" }}>
+                  {exp.company}{exp.location ? `, ${exp.location}` : ""}
+                </span>
               </div>
-              {exp.bullets.filter(b => b.text).map((b) => (
-                <p key={b.id} className="ml-[12px] text-[9.5pt] before:content-['•'] before:mr-[5px]">{b.text}</p>
+              {exp.bullets.filter((b) => b.text).map((b) => (
+                <p key={b.id} style={{ marginLeft: "12px", fontSize: `${settings.fontSize - 0.5}pt` }}>
+                  • {b.text}
+                </p>
               ))}
             </div>
           ))}
@@ -51,12 +72,14 @@ export function ClassicTemplate({ data }: Props) {
       {education.length > 0 && (
         <Section title="Education">
           {education.map((edu) => (
-            <div key={edu.id} className="mb-[6px]">
-              <div className="flex justify-between items-baseline">
-                <span className="font-bold">{edu.degree}</span>
-                <span className="text-[8.5pt] text-[#555]">{edu.graduationYear}</span>
+            <div key={edu.id} style={{ marginBottom: "6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontWeight: 700 }}>{edu.degree}</span>
+                <span style={{ fontSize: "8.5pt", color: "#555" }}>{edu.graduationYear}</span>
               </div>
-              <p className="italic text-[#444] text-[9pt]">{edu.school}{edu.location ? `, ${edu.location}` : ""}{edu.gpa ? ` · GPA: ${edu.gpa}` : ""}</p>
+              <p style={{ fontStyle: "italic", color: "#444", fontSize: "9pt" }}>
+                {edu.school}{edu.location ? `, ${edu.location}` : ""}{edu.gpa ? ` · GPA: ${edu.gpa}` : ""}
+              </p>
             </div>
           ))}
         </Section>
@@ -65,7 +88,7 @@ export function ClassicTemplate({ data }: Props) {
       {/* Skills */}
       {allSkills.length > 0 && (
         <Section title="Skills">
-          <p className="text-[9.5pt]">{allSkills.join(" · ")}</p>
+          <p style={{ fontSize: `${settings.fontSize - 0.5}pt` }}>{allSkills.join(" · ")}</p>
         </Section>
       )}
 
@@ -73,8 +96,8 @@ export function ClassicTemplate({ data }: Props) {
       {certifications.length > 0 && (
         <Section title="Certifications">
           {certifications.map((cert) => (
-            <p key={cert.id} className="text-[9.5pt] mb-[3px]">
-              <span className="font-semibold">{cert.name}</span>
+            <p key={cert.id} style={{ fontSize: `${settings.fontSize - 0.5}pt`, marginBottom: "3px" }}>
+              <strong>{cert.name}</strong>
               {cert.issuer ? ` — ${cert.issuer}` : ""}{cert.year ? ` (${cert.year})` : ""}
             </p>
           ))}
@@ -85,14 +108,16 @@ export function ClassicTemplate({ data }: Props) {
       {projects.length > 0 && (
         <Section title="Projects">
           {projects.map((proj) => (
-            <div key={proj.id} className="mb-[8px]">
-              <div className="flex justify-between items-baseline">
-                <span className="font-bold">{proj.name}</span>
-                {proj.url && <span className="text-[8pt] text-[#555] underline">{proj.url}</span>}
+            <div key={proj.id} style={{ marginBottom: "8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontWeight: 700 }}>{proj.name}</span>
+                {proj.url && <span style={{ fontSize: "8pt", color: "#555", textDecoration: "underline" }}>{proj.url}</span>}
               </div>
-              {proj.description && <p className="text-[9.5pt]">{proj.description}</p>}
+              {proj.description && <p style={{ fontSize: `${settings.fontSize - 0.5}pt` }}>{proj.description}</p>}
               {proj.technologies.length > 0 && (
-                <p className="text-[8.5pt] text-[#555] italic">{proj.technologies.join(", ")}</p>
+                <p style={{ fontSize: "8.5pt", color: "#555", fontStyle: "italic" }}>
+                  {proj.technologies.join(", ")}
+                </p>
               )}
             </div>
           ))}
@@ -104,9 +129,12 @@ export function ClassicTemplate({ data }: Props) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-[12px]">
-      <h2 className="text-[10pt] font-bold uppercase tracking-[0.06em] mb-[4px] pb-[2px]"
-        style={{ borderBottom: "1.5px solid #1a1a1a" }}>
+    <div style={{ marginBottom: "12px" }}>
+      <h2 style={{
+        fontSize: "10pt", fontWeight: 700, textTransform: "uppercase",
+        letterSpacing: "0.06em", marginBottom: "4px", paddingBottom: "2px",
+        borderBottom: "1.5px solid #1a1a1a",
+      }}>
         {title}
       </h2>
       {children}

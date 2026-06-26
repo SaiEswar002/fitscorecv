@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthThemeToggle } from "@/components/auth/AuthThemeToggle";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 export const metadata: Metadata = {
   title: {
@@ -43,7 +43,7 @@ export default function AuthLayout({
             CV
           </span>
         </Link>
-        <AuthThemeToggle />
+        <ThemeToggle />
       </header>
 
       {/* Page content */}

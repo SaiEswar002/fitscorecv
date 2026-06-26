@@ -82,7 +82,7 @@ export default async function DashboardPage() {
 
       {/* Quick action */}
       <div className="mb-8 flex items-center gap-3 flex-wrap">
-        <Link href="/builder"
+        <Link href="/builder/new"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
           style={{ background: "var(--color-cta)" }}>
           <Plus className="w-4 h-4" aria-hidden="true" />

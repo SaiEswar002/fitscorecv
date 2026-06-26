@@ -1,4 +1,5 @@
 import type { ResumeData } from "@/lib/types/resume";
+import { getEffectiveSettings, FONT_CSS_MAP } from "@/lib/types/resume";
 
 interface Props { data: ResumeData; }
 
@@ -6,10 +7,11 @@ const ACCENT = "#BE1A1A";
 
 export function ModernTemplate({ data }: Props) {
   const { contact, summary, experience, education, skills, certifications, projects } = data;
+  const settings = getEffectiveSettings(data);
+  const fontCss  = FONT_CSS_MAP[settings.fontFamily] ?? FONT_CSS_MAP["Arial"];
 
   return (
-    <div className="text-[9.5pt] text-[#1a1a1a] leading-[1.4] flex"
-      style={{ fontFamily: "'Arial', 'Helvetica', sans-serif", minHeight: "100%" }}>
+    <div style={{ fontFamily: fontCss, fontSize: `${settings.fontSize}pt`, lineHeight: settings.lineSpacing, color: "#1a1a1a", display: "flex", minHeight: "100%" }}>
 
       {/* Sidebar */}
       <div className="w-[30%] flex-shrink-0 p-[24px] flex flex-col gap-[16px]"

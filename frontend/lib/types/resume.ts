@@ -44,16 +44,21 @@ export const MARGIN_PX_MAP: Record<ResumeMarginsPreset, string> = {
 
 export interface ResumeSettings {
   fontFamily:   ResumeFontFamily;
-  fontSize:     number;               // base body size in pt (9 | 10 | 11 | 12)
+  nameSize:     number;               // 22 | 24 | 26 | 28 | 30
+  headingSize:  number;               // 11 | 12 | 13 | 14 | 15
+  bodySize:     number;               // 10 | 11 | 12 | 13
   lineSpacing:  number;               // line-height multiplier (1.0 | 1.15 | 1.5)
   margins:      ResumeMarginsPreset;  // "narrow" | "normal" | "wide"
   sectionOrder: SectionId[];          // user-specified section order
+  fontSize?:    number;               // Deprecated: kept for backward compatibility
 }
 
 export function makeBlankSettings(): ResumeSettings {
   return {
     fontFamily:   "Arial",
-    fontSize:     10,
+    nameSize:     26,
+    headingSize:  12,
+    bodySize:     10,
     lineSpacing:  1.15,
     margins:      "normal",
     sectionOrder: [...ALL_SECTION_IDS],
@@ -65,9 +70,17 @@ export function getEffectiveSettings(data: ResumeData): ResumeSettings {
   const defaults = makeBlankSettings();
   const stored = data.settings;
   if (!stored) return defaults;
+  
+  // Backward compatibility: if old fontSize exists but new sizes don't, map them
+  const fallbackBody = stored.fontSize ?? defaults.bodySize;
+  const fallbackHeading = stored.fontSize ? stored.fontSize + 2 : defaults.headingSize;
+  const fallbackName = stored.fontSize ? stored.fontSize + 16 : defaults.nameSize;
+
   return {
     fontFamily:   stored.fontFamily   ?? defaults.fontFamily,
-    fontSize:     stored.fontSize     ?? defaults.fontSize,
+    nameSize:     stored.nameSize     ?? fallbackName,
+    headingSize:  stored.headingSize  ?? fallbackHeading,
+    bodySize:     stored.bodySize     ?? fallbackBody,
     lineSpacing:  stored.lineSpacing  ?? defaults.lineSpacing,
     margins:      stored.margins      ?? defaults.margins,
     sectionOrder: (stored.sectionOrder?.length > 0)

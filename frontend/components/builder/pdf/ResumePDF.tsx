@@ -35,8 +35,8 @@ const base = StyleSheet.create({
 });
 
 // ── Classic PDF ─────────────────────────────────────────────────────────────
-type StyleOverrides = { pageStyle?: object; boldStyle?: object; italicStyle?: object; };
-function ClassicPDF({ data, pageStyle, boldStyle, italicStyle }: { data: ResumeData } & StyleOverrides) {
+type StyleOverrides = { pageStyle?: object; boldStyle?: object; italicStyle?: object; s: ResumeSettings; };
+function ClassicPDF({ data, pageStyle, boldStyle, italicStyle, s }: { data: ResumeData } & StyleOverrides) {
   const { contact, summary, experience, education, skills, certifications, projects } = data;
   const allSkills = [...skills.technical, ...skills.tools, ...skills.soft];
   const pg   = { ...base.page, ...pageStyle };
@@ -45,73 +45,112 @@ function ClassicPDF({ data, pageStyle, boldStyle, italicStyle }: { data: ResumeD
 
   return (
     <Page size="A4" style={pg}>
-      {contact.name && (
-        <View style={{ marginBottom: 6, textAlign: "center" }}>
-          <Text style={base.name}>{contact.name}</Text>
-          <Text style={base.contactLine}>
-            {[contact.email, contact.phone, contact.location, contact.linkedin, contact.website].filter(Boolean).join("  ·  ")}
-          </Text>
-          <View style={{ borderBottomWidth: 1, borderBottomColor: "#1a1a1a", borderBottomStyle: "solid" }} />
-        </View>
-      )}
-      {summary && (<>
-        <Text style={base.sectionTitle}>Professional Summary</Text>
-        <Text style={base.body}>{summary}</Text>
-      </>)}
-      {experience.length > 0 && (<>
-        <Text style={base.sectionTitle}>Work Experience</Text>
-        {experience.map(exp => (
-          <View key={exp.id} style={{ marginBottom: 8 }}>
-            <View style={base.row}>
-              <Text style={base.bold}>{exp.title}</Text>
-              <Text style={base.small}>{exp.startDate}{exp.startDate ? " – " : ""}{exp.current ? "Present" : exp.endDate}</Text>
-            </View>
-            <Text style={[base.italic, { color: "#444", marginBottom: 2 }]}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
-            {exp.bullets.filter(b => b.text).map(b => (
-              <Text key={b.id} style={base.bullet}>• {b.text}</Text>
-            ))}
-          </View>
-        ))}
-      </>)}
-      {education.length > 0 && (<>
-        <Text style={base.sectionTitle}>Education</Text>
-        {education.map(edu => (
-          <View key={edu.id} style={{ marginBottom: 5 }}>
-            <View style={base.row}>
-              <Text style={base.bold}>{edu.degree}</Text>
-              <Text style={base.small}>{edu.graduationYear}</Text>
-            </View>
-            <Text style={[base.italic, { color: "#444" }]}>{edu.school}{edu.location ? `, ${edu.location}` : ""}{edu.gpa ? ` · GPA: ${edu.gpa}` : ""}</Text>
-          </View>
-        ))}
-      </>)}
-      {allSkills.length > 0 && (<>
-        <Text style={base.sectionTitle}>Skills</Text>
-        <Text style={base.body}>{allSkills.join(" · ")}</Text>
-      </>)}
-      {certifications.length > 0 && (<>
-        <Text style={base.sectionTitle}>Certifications</Text>
-        {certifications.map(c => <Text key={c.id} style={base.body}>{c.name}{c.issuer ? ` — ${c.issuer}` : ""}{c.year ? ` (${c.year})` : ""}</Text>)}
-      </>)}
-      {projects.length > 0 && (<>
-        <Text style={base.sectionTitle}>Projects</Text>
-        {projects.map(proj => (
-          <View key={proj.id} style={{ marginBottom: 5 }}>
-            <View style={base.row}>
-              <Text style={base.bold}>{proj.name}</Text>
-              {proj.url && <Text style={base.small}>{proj.url}</Text>}
-            </View>
-            {proj.description && <Text style={base.body}>{proj.description}</Text>}
-            {proj.technologies.length > 0 && <Text style={[base.small, { fontFamily: "Helvetica-Oblique" }]}>{proj.technologies.join(", ")}</Text>}
-          </View>
-        ))}
-      </>)}
+      {s.sectionOrder.map((sectionId) => {
+        switch (sectionId) {
+          case "contact":
+            if (!contact.name) return null;
+            return (
+              <View key="contact" style={{ marginBottom: 6, textAlign: "center" }}>
+                <Text style={{ ...base.name, fontSize: s.nameSize }}>{contact.name}</Text>
+                <Text style={{ ...base.contactLine, fontSize: Math.max(8, s.bodySize - 1.5) }}>
+                  {[contact.email, contact.phone, contact.location, contact.linkedin, contact.website].filter(Boolean).join("  ·  ")}
+                </Text>
+                <View style={{ borderBottomWidth: 1, borderBottomColor: "#1a1a1a", borderBottomStyle: "solid" }} />
+              </View>
+            );
+          
+          case "summary":
+            if (!summary) return null;
+            return (
+              <View key="summary">
+                <Text style={{ ...base.sectionTitle, fontSize: s.headingSize }}>Professional Summary</Text>
+                <Text style={{ ...base.body, fontSize: s.bodySize }}>{summary}</Text>
+              </View>
+            );
+
+          case "experience":
+            if (experience.length === 0) return null;
+            return (
+              <View key="experience">
+                <Text style={{ ...base.sectionTitle, fontSize: s.headingSize }}>Work Experience</Text>
+                {experience.map(exp => (
+                  <View key={exp.id} style={{ marginBottom: 8 }}>
+                    <View style={base.row}>
+                      <Text style={{ ...bd, fontSize: s.bodySize }}>{exp.title}</Text>
+                      <Text style={{ ...base.small, fontSize: Math.max(8, s.bodySize - 1.5) }}>{exp.startDate}{exp.startDate ? " – " : ""}{exp.current ? "Present" : exp.endDate}</Text>
+                    </View>
+                    <Text style={[it, { color: "#444", marginBottom: 2, fontSize: s.bodySize }]}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+                    {exp.bullets.filter(b => b.text).map(b => (
+                      <Text key={b.id} style={{ ...base.bullet, fontSize: s.bodySize }}>• {b.text}</Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            );
+
+          case "education":
+            if (education.length === 0) return null;
+            return (
+              <View key="education">
+                <Text style={{ ...base.sectionTitle, fontSize: s.headingSize }}>Education</Text>
+                {education.map(edu => (
+                  <View key={edu.id} style={{ marginBottom: 5 }}>
+                    <View style={base.row}>
+                      <Text style={{ ...bd, fontSize: s.bodySize }}>{edu.degree}</Text>
+                      <Text style={{ ...base.small, fontSize: Math.max(8, s.bodySize - 1.5) }}>{edu.graduationYear}</Text>
+                    </View>
+                    <Text style={[it, { color: "#444", fontSize: s.bodySize }]}>{edu.school}{edu.location ? `, ${edu.location}` : ""}{edu.gpa ? ` · GPA: ${edu.gpa}` : ""}</Text>
+                  </View>
+                ))}
+              </View>
+            );
+
+          case "skills":
+            if (allSkills.length === 0) return null;
+            return (
+              <View key="skills">
+                <Text style={{ ...base.sectionTitle, fontSize: s.headingSize }}>Skills</Text>
+                <Text style={{ ...base.body, fontSize: s.bodySize }}>{allSkills.join(" · ")}</Text>
+              </View>
+            );
+
+          case "certifications":
+            if (certifications.length === 0) return null;
+            return (
+              <View key="certifications">
+                <Text style={{ ...base.sectionTitle, fontSize: s.headingSize }}>Certifications</Text>
+                {certifications.map(c => <Text key={c.id} style={{ ...base.body, fontSize: s.bodySize }}>{c.name}{c.issuer ? ` — ${c.issuer}` : ""}{c.year ? ` (${c.year})` : ""}</Text>)}
+              </View>
+            );
+
+          case "projects":
+            if (projects.length === 0) return null;
+            return (
+              <View key="projects">
+                <Text style={{ ...base.sectionTitle, fontSize: s.headingSize }}>Projects</Text>
+                {projects.map(proj => (
+                  <View key={proj.id} style={{ marginBottom: 5 }}>
+                    <View style={base.row}>
+                      <Text style={{ ...bd, fontSize: s.bodySize }}>{proj.name}</Text>
+                      {proj.url && <Text style={{ ...base.small, fontSize: Math.max(8, s.bodySize - 1.5) }}>{proj.url}</Text>}
+                    </View>
+                    {proj.description && <Text style={{ ...base.body, fontSize: s.bodySize }}>{proj.description}</Text>}
+                    {proj.technologies.length > 0 && <Text style={[it, { color: "#555", fontSize: Math.max(8, s.bodySize - 1.5) }]}>{proj.technologies.join(", ")}</Text>}
+                  </View>
+                ))}
+              </View>
+            );
+
+          default:
+            return null;
+        }
+      })}
     </Page>
   );
 }
 
 // ── Minimal PDF (same structure as Classic but lighter borders) ─────────────
-function MinimalPDF({ data, pageStyle, boldStyle }: { data: ResumeData } & StyleOverrides) {
+function MinimalPDF({ data, pageStyle, boldStyle, s }: { data: ResumeData } & StyleOverrides) {
   const { contact, summary, experience, education, skills, certifications, projects } = data;
   const allSkills = [...skills.technical, ...skills.tools, ...skills.soft];
   const pg       = { ...base.page, ...pageStyle };
@@ -120,126 +159,224 @@ function MinimalPDF({ data, pageStyle, boldStyle }: { data: ResumeData } & Style
 
   return (
     <Page size="A4" style={pg}>
-      {contact.name && (
-        <View style={{ marginBottom: 8 }}>
-          <Text style={base.name}>{contact.name}</Text>
-          <Text style={base.contactLine}>
-            {[contact.email, contact.phone, contact.location, contact.linkedin, contact.website].filter(Boolean).join("  |  ")}
-          </Text>
-        </View>
-      )}
-      {summary && (<><Text style={minTitle}>Summary</Text><Text style={base.body}>{summary}</Text></>)}
-      {experience.length > 0 && (<>
-        <Text style={minTitle}>Experience</Text>
-        {experience.map(exp => (
-          <View key={exp.id} style={{ marginBottom: 7 }}>
-            <View style={base.row}>
-              <Text style={bd}>{exp.title}{exp.company ? `, ${exp.company}` : ""}</Text>
-              <Text style={base.small}>{exp.startDate}{exp.startDate ? "–" : ""}{exp.current ? "Present" : exp.endDate}</Text>
-            </View>
-            {exp.bullets.filter(b => b.text).map(b => <Text key={b.id} style={base.bullet}>- {b.text}</Text>)}
-          </View>
-        ))}
-      </>)}
-      {education.length > 0 && (<>
-        <Text style={minTitle}>Education</Text>
-        {education.map(edu => (
-          <View key={edu.id} style={{ marginBottom: 5 }}>
-            <View style={base.row}>
-              <Text style={bd}>{edu.degree}{edu.school ? `, ${edu.school}` : ""}</Text>
-              <Text style={base.small}>{edu.graduationYear}</Text>
-            </View>
-          </View>
-        ))}
-      </>)}
-      {allSkills.length > 0 && (<><Text style={minTitle}>Skills</Text><Text style={base.body}>{allSkills.join(", ")}</Text></>)}
-      {certifications.length > 0 && (<>
-        <Text style={minTitle}>Certifications</Text>
-        {certifications.map(c => <Text key={c.id} style={base.body}>{c.name}{c.issuer ? ` — ${c.issuer}` : ""}{c.year ? ` (${c.year})` : ""}</Text>)}
-      </>)}
-      {projects.length > 0 && (<>
-        <Text style={minTitle}>Projects</Text>
-        {projects.map(proj => (
-          <View key={proj.id} style={{ marginBottom: 5 }}>
-            <Text style={bd}>{proj.name}{proj.url ? ` (${proj.url})` : ""}</Text>
-            {proj.description && <Text style={base.body}>{proj.description}</Text>}
-          </View>
-        ))}
-      </>)}
+      {s.sectionOrder.map((sectionId) => {
+        switch (sectionId) {
+          case "contact":
+            if (!contact.name) return null;
+            return (
+              <View key="contact" style={{ marginBottom: 8 }}>
+                <Text style={{ ...base.name, fontSize: s.nameSize }}>{contact.name}</Text>
+                <Text style={{ ...base.contactLine, fontSize: Math.max(8, s.bodySize - 1.5) }}>
+                  {[contact.email, contact.phone, contact.location, contact.linkedin, contact.website].filter(Boolean).join("  |  ")}
+                </Text>
+              </View>
+            );
+
+          case "summary":
+            if (!summary) return null;
+            return (
+              <View key="summary">
+                <Text style={{ ...minTitle, fontSize: s.headingSize }}>Summary</Text>
+                <Text style={{ ...base.body, fontSize: s.bodySize }}>{summary}</Text>
+              </View>
+            );
+
+          case "experience":
+            if (experience.length === 0) return null;
+            return (
+              <View key="experience">
+                <Text style={{ ...minTitle, fontSize: s.headingSize }}>Experience</Text>
+                {experience.map(exp => (
+                  <View key={exp.id} style={{ marginBottom: 7 }}>
+                    <View style={base.row}>
+                      <Text style={{ ...bd, fontSize: s.bodySize }}>{exp.title}{exp.company ? `, ${exp.company}` : ""}</Text>
+                      <Text style={{ ...base.small, fontSize: Math.max(8, s.bodySize - 1.5) }}>{exp.startDate}{exp.startDate ? "–" : ""}{exp.current ? "Present" : exp.endDate}</Text>
+                    </View>
+                    {exp.bullets.filter(b => b.text).map(b => <Text key={b.id} style={{ ...base.bullet, fontSize: s.bodySize }}>- {b.text}</Text>)}
+                  </View>
+                ))}
+              </View>
+            );
+
+          case "education":
+            if (education.length === 0) return null;
+            return (
+              <View key="education">
+                <Text style={{ ...minTitle, fontSize: s.headingSize }}>Education</Text>
+                {education.map(edu => (
+                  <View key={edu.id} style={{ marginBottom: 5 }}>
+                    <View style={base.row}>
+                      <Text style={{ ...bd, fontSize: s.bodySize }}>{edu.degree}{edu.school ? `, ${edu.school}` : ""}</Text>
+                      <Text style={{ ...base.small, fontSize: Math.max(8, s.bodySize - 1.5) }}>{edu.graduationYear}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            );
+
+          case "skills":
+            if (allSkills.length === 0) return null;
+            return (
+              <View key="skills">
+                <Text style={{ ...minTitle, fontSize: s.headingSize }}>Skills</Text>
+                <Text style={{ ...base.body, fontSize: s.bodySize }}>{allSkills.join(", ")}</Text>
+              </View>
+            );
+
+          case "certifications":
+            if (certifications.length === 0) return null;
+            return (
+              <View key="certifications">
+                <Text style={{ ...minTitle, fontSize: s.headingSize }}>Certifications</Text>
+                {certifications.map(c => <Text key={c.id} style={{ ...base.body, fontSize: s.bodySize }}>{c.name}{c.issuer ? ` — ${c.issuer}` : ""}{c.year ? ` (${c.year})` : ""}</Text>)}
+              </View>
+            );
+
+          case "projects":
+            if (projects.length === 0) return null;
+            return (
+              <View key="projects">
+                <Text style={{ ...minTitle, fontSize: s.headingSize }}>Projects</Text>
+                {projects.map(proj => (
+                  <View key={proj.id} style={{ marginBottom: 5 }}>
+                    <Text style={{ ...bd, fontSize: s.bodySize }}>{proj.name}{proj.url ? ` (${proj.url})` : ""}</Text>
+                    {proj.description && <Text style={{ ...base.body, fontSize: s.bodySize }}>{proj.description}</Text>}
+                  </View>
+                ))}
+              </View>
+            );
+
+          default:
+            return null;
+        }
+      })}
     </Page>
   );
 }
 
 // ── Modern PDF ─────────────────────────────────────────────────────────────
-function ModernPDF({ data, pageStyle, boldStyle }: { data: ResumeData } & StyleOverrides) {
+function ModernPDF({ data, pageStyle, boldStyle, s }: { data: ResumeData } & StyleOverrides) {
   const ACCENT = "#BE1A1A";
   const { contact, summary, experience, education, skills, certifications, projects } = data;
   const bd = { ...base.bold, ...boldStyle };
+
+  const sideTitle = { fontSize: Math.max(7, s.headingSize - 4.5), fontFamily: "Helvetica-Bold", color: ACCENT, textTransform: "uppercase" as const, letterSpacing: 0.6, borderBottomWidth: 1, borderBottomColor: ACCENT, borderBottomStyle: "solid" as const, paddingBottom: 2, marginBottom: 5, marginTop: 12 };
+  const mainTitle = { fontSize: Math.max(9, s.headingSize - 3), fontFamily: "Helvetica-Bold", textTransform: "uppercase" as const, letterSpacing: 0.6, color: ACCENT, borderBottomWidth: 1.5, borderBottomColor: ACCENT, borderBottomStyle: "solid" as const, paddingBottom: 2, marginBottom: 6, marginTop: 10 };
 
   return (
     <Page size="A4" style={{ ...base.page, ...pageStyle, flexDirection: "row", padding: 0 }}>
       {/* Sidebar */}
       <View style={{ width: "30%", backgroundColor: "#1a1a1a", padding: "24pt 14pt", color: "#f0f0f0" }}>
-        {contact.name && <Text style={{ fontSize: 13, fontFamily: "Helvetica-Bold", color: "#ffffff", marginBottom: 12 }}>{contact.name}</Text>}
-        <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: ACCENT, textTransform: "uppercase", letterSpacing: 0.6, borderBottomWidth: 1, borderBottomColor: ACCENT, borderBottomStyle: "solid", paddingBottom: 2, marginBottom: 5 }}>Contact</Text>
-        {[contact.email, contact.phone, contact.location, contact.linkedin, contact.website].filter(Boolean).map((v, i) => (
-          <Text key={i} style={{ fontSize: 7.5, color: "#ccc", marginBottom: 3 }}>{v}</Text>
-        ))}
-        {(skills.technical.length > 0 || skills.tools.length > 0 || skills.soft.length > 0) && (<>
-          <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: ACCENT, textTransform: "uppercase", letterSpacing: 0.6, borderBottomWidth: 1, borderBottomColor: ACCENT, borderBottomStyle: "solid", paddingBottom: 2, marginBottom: 5, marginTop: 12 }}>Skills</Text>
-          {skills.technical.length > 0 && <><Text style={{ fontSize: 7, color: "#aaa" }}>Technical</Text><Text style={{ fontSize: 8, color: "#ddd", marginBottom: 4 }}>{skills.technical.join(", ")}</Text></>}
-          {skills.tools.length > 0 && <><Text style={{ fontSize: 7, color: "#aaa" }}>Tools</Text><Text style={{ fontSize: 8, color: "#ddd", marginBottom: 4 }}>{skills.tools.join(", ")}</Text></>}
-          {skills.soft.length > 0 && <><Text style={{ fontSize: 7, color: "#aaa" }}>Soft</Text><Text style={{ fontSize: 8, color: "#ddd" }}>{skills.soft.join(", ")}</Text></>}
-        </>)}
-        {education.length > 0 && (<>
-          <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: ACCENT, textTransform: "uppercase", letterSpacing: 0.6, borderBottomWidth: 1, borderBottomColor: ACCENT, borderBottomStyle: "solid", paddingBottom: 2, marginBottom: 5, marginTop: 12 }}>Education</Text>
-          {education.map(edu => (
-            <View key={edu.id} style={{ marginBottom: 6 }}>
-              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: "#fff" }}>{edu.degree}</Text>
-              <Text style={{ fontSize: 7.5, color: "#bbb" }}>{edu.school}</Text>
-              <Text style={{ fontSize: 7, color: "#888" }}>{edu.graduationYear}</Text>
-            </View>
-          ))}
-        </>)}
-        {certifications.length > 0 && (<>
-          <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: ACCENT, textTransform: "uppercase", letterSpacing: 0.6, borderBottomWidth: 1, borderBottomColor: ACCENT, borderBottomStyle: "solid", paddingBottom: 2, marginBottom: 5, marginTop: 12 }}>Certifications</Text>
-          {certifications.map(c => <Text key={c.id} style={{ fontSize: 8, color: "#ccc", marginBottom: 2 }}>{c.name}{c.year ? ` (${c.year})` : ""}</Text>)}
-        </>)}
+        
+        {s.sectionOrder.filter(id => ["contact", "skills", "education", "certifications"].includes(id)).map((sectionId) => {
+          switch (sectionId) {
+            case "contact":
+              return (
+                <View key="contact">
+                  {contact.name && <Text style={{ fontSize: Math.max(13, s.nameSize - 13), fontFamily: "Helvetica-Bold", color: "#ffffff", marginBottom: 12 }}>{contact.name}</Text>}
+                  <Text style={{ ...sideTitle, marginTop: 0 }}>Contact</Text>
+                  {[contact.email, contact.phone, contact.location, contact.linkedin, contact.website].filter(Boolean).map((v, i) => (
+                    <Text key={i} style={{ fontSize: Math.max(7.5, s.bodySize - 2.5), color: "#ccc", marginBottom: 3 }}>{v}</Text>
+                  ))}
+                </View>
+              );
+
+            case "skills":
+              if (skills.technical.length === 0 && skills.tools.length === 0 && skills.soft.length === 0) return null;
+              return (
+                <View key="skills">
+                  <Text style={sideTitle}>Skills</Text>
+                  {skills.technical.length > 0 && <><Text style={{ fontSize: Math.max(7, s.bodySize - 3), color: "#aaa" }}>Technical</Text><Text style={{ fontSize: Math.max(8, s.bodySize - 2), color: "#ddd", marginBottom: 4 }}>{skills.technical.join(", ")}</Text></>}
+                  {skills.tools.length > 0 && <><Text style={{ fontSize: Math.max(7, s.bodySize - 3), color: "#aaa" }}>Tools</Text><Text style={{ fontSize: Math.max(8, s.bodySize - 2), color: "#ddd", marginBottom: 4 }}>{skills.tools.join(", ")}</Text></>}
+                  {skills.soft.length > 0 && <><Text style={{ fontSize: Math.max(7, s.bodySize - 3), color: "#aaa" }}>Soft</Text><Text style={{ fontSize: Math.max(8, s.bodySize - 2), color: "#ddd" }}>{skills.soft.join(", ")}</Text></>}
+                </View>
+              );
+
+            case "education":
+              if (education.length === 0) return null;
+              return (
+                <View key="education">
+                  <Text style={sideTitle}>Education</Text>
+                  {education.map(edu => (
+                    <View key={edu.id} style={{ marginBottom: 6 }}>
+                      <Text style={{ fontSize: Math.max(8, s.bodySize - 2), fontFamily: "Helvetica-Bold", color: "#fff" }}>{edu.degree}</Text>
+                      <Text style={{ fontSize: Math.max(7.5, s.bodySize - 2.5), color: "#bbb" }}>{edu.school}</Text>
+                      <Text style={{ fontSize: Math.max(7, s.bodySize - 3), color: "#888" }}>{edu.graduationYear}</Text>
+                    </View>
+                  ))}
+                </View>
+              );
+
+            case "certifications":
+              if (certifications.length === 0) return null;
+              return (
+                <View key="certifications">
+                  <Text style={sideTitle}>Certifications</Text>
+                  {certifications.map(c => <Text key={c.id} style={{ fontSize: Math.max(8, s.bodySize - 2), color: "#ccc", marginBottom: 2 }}>{c.name}{c.year ? ` (${c.year})` : ""}</Text>)}
+                </View>
+              );
+
+            default:
+              return null;
+          }
+        })}
       </View>
+
       {/* Main */}
       <View style={{ flex: 1, padding: "24pt 20pt" }}>
-        {summary && (<>
-          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.6, color: ACCENT, borderBottomWidth: 1.5, borderBottomColor: ACCENT, borderBottomStyle: "solid", paddingBottom: 2, marginBottom: 6 }}>Profile</Text>
-          <Text style={{ ...base.body, marginBottom: 10 }}>{summary}</Text>
-        </>)}
-        {experience.length > 0 && (<>
-          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.6, color: ACCENT, borderBottomWidth: 1.5, borderBottomColor: ACCENT, borderBottomStyle: "solid", paddingBottom: 2, marginBottom: 6 }}>Experience</Text>
-          {experience.map(exp => (
-            <View key={exp.id} style={{ marginBottom: 9 }}>
-              <View style={base.row}>
-                <View>
-                  <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold" }}>{exp.title}</Text>
-                  <Text style={{ fontSize: 8.5, color: ACCENT }}>{exp.company}{exp.location ? ` · ${exp.location}` : ""}</Text>
+        {s.sectionOrder.filter(id => ["summary", "experience", "projects"].includes(id)).map((sectionId) => {
+          switch (sectionId) {
+            case "summary":
+              if (!summary) return null;
+              return (
+                <View key="summary">
+                  <Text style={{ ...mainTitle, marginTop: 0 }}>Profile</Text>
+                  <Text style={{ ...base.body, fontSize: s.bodySize, marginBottom: 10 }}>{summary}</Text>
                 </View>
-                <Text style={base.small}>{exp.startDate}{exp.startDate ? " – " : ""}{exp.current ? "Present" : exp.endDate}</Text>
-              </View>
-              {exp.bullets.filter(b => b.text).map(b => <Text key={b.id} style={{ ...base.bullet, marginTop: 2 }}>▸ {b.text}</Text>)}
-            </View>
-          ))}
-        </>)}
-        {projects.length > 0 && (<>
-          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.6, color: ACCENT, borderBottomWidth: 1.5, borderBottomColor: ACCENT, borderBottomStyle: "solid", paddingBottom: 2, marginBottom: 6, marginTop: 10 }}>Projects</Text>
-          {projects.map(proj => (
-            <View key={proj.id} style={{ marginBottom: 7 }}>
-              <View style={base.row}>
-                <Text style={base.bold}>{proj.name}</Text>
-                {proj.url && <Text style={base.small}>{proj.url}</Text>}
-              </View>
-              {proj.description && <Text style={base.body}>{proj.description}</Text>}
-              {proj.technologies.length > 0 && <Text style={[base.small, { fontFamily: "Helvetica-Oblique" }]}>{proj.technologies.join(", ")}</Text>}
-            </View>
-          ))}
-        </>)}
+              );
+
+            case "experience":
+              if (experience.length === 0) return null;
+              return (
+                <View key="experience">
+                  <Text style={mainTitle}>Experience</Text>
+                  {experience.map(exp => (
+                    <View key={exp.id} style={{ marginBottom: 9 }}>
+                      <View style={base.row}>
+                        <View>
+                          <Text style={{ fontSize: Math.max(10, s.bodySize), fontFamily: "Helvetica-Bold" }}>{exp.title}</Text>
+                          <Text style={{ fontSize: Math.max(8.5, s.bodySize - 1.5), color: ACCENT }}>{exp.company}{exp.location ? ` · ${exp.location}` : ""}</Text>
+                        </View>
+                        <Text style={{ ...base.small, fontSize: Math.max(8.5, s.bodySize - 1.5) }}>{exp.startDate}{exp.startDate ? " – " : ""}{exp.current ? "Present" : exp.endDate}</Text>
+                      </View>
+                      {exp.bullets.filter(b => b.text).map(b => <Text key={b.id} style={{ ...base.bullet, fontSize: s.bodySize, marginTop: 2 }}>▸ {b.text}</Text>)}
+                    </View>
+                  ))}
+                </View>
+              );
+
+            case "projects":
+              if (projects.length === 0) return null;
+              return (
+                <View key="projects">
+                  <Text style={mainTitle}>Projects</Text>
+                  {projects.map(proj => (
+                    <View key={proj.id} style={{ marginBottom: 7 }}>
+                      <View style={base.row}>
+                        <Text style={{ ...bd, fontSize: s.bodySize }}>{proj.name}</Text>
+                        {proj.url && <Text style={{ ...base.small, fontSize: Math.max(8.5, s.bodySize - 1.5) }}>{proj.url}</Text>}
+                      </View>
+                      {proj.description && <Text style={{ ...base.body, fontSize: s.bodySize }}>{proj.description}</Text>}
+                      {proj.technologies.length > 0 && <Text style={[base.small, { fontFamily: "Helvetica-Oblique", fontSize: Math.max(8.5, s.bodySize - 1.5) }]}>{proj.technologies.join(", ")}</Text>}
+                    </View>
+                  ))}
+                </View>
+              );
+
+            default:
+              return null;
+          }
+        })}
       </View>
     </Page>
   );
@@ -253,16 +390,16 @@ export function ResumePDF({ data, template, title, settings }: Props) {
   const fontIt = font === "Times-Roman" ? "Times-Italic" : "Helvetica-Oblique";
   const margin = PDF_MARGIN_MAP[s.margins] ?? PDF_MARGIN_MAP["normal"];
 
-  // Build per-document overrides
-  const pageStyle = { ...base.page, fontFamily: font, fontSize: s.fontSize, lineHeight: s.lineSpacing, padding: margin };
+  // Build per-document overrides (we don't pass fontSize here since it's mapped per element, but keep it for layout calculations)
+  const pageStyle = { ...base.page, fontFamily: font, lineHeight: s.lineSpacing, padding: margin };
   const boldStyle = { fontFamily: fontBd };
   const italicStyle = { fontFamily: fontIt };
 
   return (
     <Document title={title} author={data.contact.name} subject="Resume">
-      {template === "modern"  ? <ModernPDF  data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} /> :
-       template === "minimal" ? <MinimalPDF data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} /> :
-                                <ClassicPDF data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} />}
+      {template === "modern"  ? <ModernPDF  data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} s={s} /> :
+       template === "minimal" ? <MinimalPDF data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} s={s} /> :
+                                <ClassicPDF data={data} pageStyle={pageStyle} boldStyle={boldStyle} italicStyle={italicStyle} s={s} />}
     </Document>
   );
 }

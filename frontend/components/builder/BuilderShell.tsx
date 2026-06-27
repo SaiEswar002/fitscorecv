@@ -14,7 +14,7 @@ import {
   makeBlankResumeData, makeBlankContact, makeBlankSkills,
   getEffectiveSettings, RESUME_FONTS, ALL_SECTION_IDS, normalizeResumeData
 } from "@/lib/types/resume";
-import { updateResumeData, updateResumeMeta, deleteResume } from "@/lib/actions/resume";
+import { updateResumeData, updateResumeMeta, deleteResume, duplicateResume } from "@/lib/actions/resume";
 
 import { ContactSection }       from "./sections/ContactSection";
 import { SummarySection }       from "./sections/SummarySection";
@@ -242,6 +242,15 @@ export function BuilderShell({ resume }: Props) {
     });
   }
 
+  async function handleDuplicate() {
+    try {
+      const newId = await duplicateResume(resume.id);
+      router.push(`/builder/${newId}`);
+    } catch (err) {
+      console.error("Failed to duplicate resume", err);
+    }
+  }
+
   // Cleanup timer on unmount
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
@@ -260,10 +269,13 @@ export function BuilderShell({ resume }: Props) {
 
   // ── Save indicator ────────────────────────────────────────────────────────
   function SaveIndicator() {
-    if (saveStatus === "saving") return <span className="flex items-center gap-1 text-xs" style={{ color: "var(--color-muted)" }}><Loader2 className="w-3 h-3 animate-spin" />Saving…</span>;
-    if (saveStatus === "saved")  return <span className="flex items-center gap-1 text-xs text-green-500"><CheckCircle className="w-3 h-3" />Saved</span>;
-    if (saveStatus === "dirty")  return <span className="text-xs" style={{ color: "var(--color-muted)" }}>Unsaved changes</span>;
-    if (saveStatus === "error")  return <span className="text-xs text-red-500">Save failed</span>;
+    if (saveStatus === "saving") return <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--color-muted)" }}><Loader2 className="w-3 h-3 animate-spin" />Saving…</span>;
+    if (saveStatus === "saved")  {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return <span className="flex items-center gap-1 text-[11px] text-green-500"><CheckCircle className="w-3 h-3" />Saved at {time}</span>;
+    }
+    if (saveStatus === "dirty")  return <span className="text-[11px]" style={{ color: "var(--color-muted)" }}>Unsaved changes</span>;
+    if (saveStatus === "error")  return <span className="text-[11px] text-red-500">Save failed</span>;
     return null;
   }
 
@@ -276,19 +288,30 @@ export function BuilderShell({ resume }: Props) {
   // DashboardNav = 56px, BuilderToolbar = 48px  → inner area = calc(100vh - 104px)
   const INNER_H = "calc(100vh - 56px - 48px)";
 
+  // ── Word Count ────────────────────────────────────────────────────────────
+  const textContent = [
+    data.contact.name, data.contact.email, data.contact.location,
+    data.summary,
+    ...data.experience.map(e => `${e.title} ${e.company} ${e.bullets.map(b => b.text).join(" ")}`),
+    ...data.education.map(e => `${e.degree} ${e.school}`),
+    ...data.skills.technical, ...data.skills.tools, ...data.skills.soft,
+    ...data.certifications.map(c => c.name),
+    ...data.projects.map(p => `${p.name} ${p.description}`)
+  ].join(" ").replace(/\s+/g, " ").trim();
+  const wordCount = textContent ? textContent.split(" ").length : 0;
+  const pageEstimate = Math.max(1, Math.ceil(wordCount / 400));
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-2 px-3 py-2 border-b flex-wrap md:flex-nowrap"
+        className="flex items-center justify-between gap-2 px-3 py-2 border-b flex-wrap md:flex-nowrap"
         style={{
           background:    "var(--color-nav-bg)",
           borderColor:   "var(--color-border)",
           backdropFilter: "blur(12px)",
-          height: "48px",
           minHeight: "48px",
-          overflow: "hidden",
         }}
       >
         {/* Left group */}
@@ -337,22 +360,28 @@ export function BuilderShell({ resume }: Props) {
             {RESUME_FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
 
-          {/* Font size */}
-          <div className="flex items-center gap-0.5 rounded-lg overflow-hidden"
-            style={{ border: "1px solid var(--color-border)" }}>
-            <button
-              onClick={() => handleSettingsChange({ fontSize: Math.max(9, settings.fontSize - 1) })}
-              className="p-1.5" style={{ background: "var(--color-surface-elevated)", color: "var(--color-muted)" }}
-              aria-label="Decrease font size"
-            ><Minus className="w-3 h-3" /></button>
-            <span className="text-xs px-2 font-mono" style={{ background: "var(--color-surface-elevated)", color: "var(--color-heading)" }}>
-              {settings.fontSize}pt
-            </span>
-            <button
-              onClick={() => handleSettingsChange({ fontSize: Math.min(12, settings.fontSize + 1) })}
-              className="p-1.5" style={{ background: "var(--color-surface-elevated)", color: "var(--color-muted)" }}
-              aria-label="Increase font size"
-            ><Plus className="w-3 h-3" /></button>
+          {/* Typography Sizes */}
+          <div className="flex items-center rounded-lg overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
+            <div className="flex items-center border-r" style={{ borderColor: "var(--color-border)" }}>
+              <span className="text-[10px] px-1.5 font-medium uppercase" style={{ color: "var(--color-muted)" }}>Name</span>
+              <button onClick={() => handleSettingsChange({ nameSize: Math.max(16, settings.nameSize - 1) })} className="p-1 hover:bg-black/5" aria-label="Decrease name size"><Minus className="w-3 h-3" /></button>
+              <span className="text-[11px] font-mono px-1 w-6 text-center">{settings.nameSize}</span>
+              <button onClick={() => handleSettingsChange({ nameSize: Math.min(32, settings.nameSize + 1) })} className="p-1 hover:bg-black/5" aria-label="Increase name size"><Plus className="w-3 h-3" /></button>
+            </div>
+            
+            <div className="flex items-center border-r" style={{ borderColor: "var(--color-border)" }}>
+              <span className="text-[10px] px-1.5 font-medium uppercase" style={{ color: "var(--color-muted)" }}>H1</span>
+              <button onClick={() => handleSettingsChange({ headingSize: Math.max(10, settings.headingSize - 1) })} className="p-1 hover:bg-black/5" aria-label="Decrease heading size"><Minus className="w-3 h-3" /></button>
+              <span className="text-[11px] font-mono px-1 w-6 text-center">{settings.headingSize}</span>
+              <button onClick={() => handleSettingsChange({ headingSize: Math.min(20, settings.headingSize + 1) })} className="p-1 hover:bg-black/5" aria-label="Increase heading size"><Plus className="w-3 h-3" /></button>
+            </div>
+            
+            <div className="flex items-center">
+              <span className="text-[10px] px-1.5 font-medium uppercase" style={{ color: "var(--color-muted)" }}>Body</span>
+              <button onClick={() => handleSettingsChange({ bodySize: Math.max(8, settings.bodySize - 0.5) })} className="p-1 hover:bg-black/5" aria-label="Decrease body size"><Minus className="w-3 h-3" /></button>
+              <span className="text-[11px] font-mono px-1 w-6 text-center">{settings.bodySize}</span>
+              <button onClick={() => handleSettingsChange({ bodySize: Math.min(14, settings.bodySize + 0.5) })} className="p-1 hover:bg-black/5" aria-label="Increase body size"><Plus className="w-3 h-3" /></button>
+            </div>
           </div>
 
           {/* Line spacing */}
@@ -435,12 +464,24 @@ export function BuilderShell({ resume }: Props) {
           {/* Download PDF */}
           <DownloadButton data={data} template={template} title={title} settings={settings} />
 
+          {/* Duplicate */}
+          <button
+            onClick={handleDuplicate}
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: "var(--color-muted)" }}
+            aria-label="Duplicate resume"
+            title="Duplicate Resume"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+
           {/* Delete */}
           <button
             onClick={confirmDeleteResume}
-            className="p-1.5 rounded-lg transition-colors"
+            className="p-1.5 rounded-lg transition-colors hover:text-red-500"
             style={{ color: "var(--color-muted)" }}
             aria-label="Delete resume"
+            title="Delete Resume"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -579,9 +620,14 @@ export function BuilderShell({ resume }: Props) {
             {/* Zoom bar */}
             <div className="flex items-center justify-between px-3 py-1.5 border-b flex-shrink-0"
               style={{ background: "var(--color-nav-bg)", borderColor: "var(--color-border)" }}>
-              <span className="text-xs font-medium" style={{ color: "var(--color-muted)" }}>
-                Preview
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium" style={{ color: "var(--color-muted)" }}>
+                  Preview
+                </span>
+                <span className="text-[10px]" style={{ color: "var(--color-muted)" }}>
+                  {wordCount} words (~{pageEstimate} page{pageEstimate > 1 ? "s" : ""})
+                </span>
+              </div>
               <div className="flex items-center gap-1">
                 <ZoomIn className="w-3 h-3" style={{ color: "var(--color-muted)" }} aria-hidden="true" />
                 <select

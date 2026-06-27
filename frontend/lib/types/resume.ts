@@ -164,7 +164,7 @@ export interface Resume {
   user_id:     string;
   title:       string;
   template:    ResumeTemplate;
-  status:      "draft" | "complete";
+  status:      "draft" | "complete" | "archived";
   resume_data: ResumeData;
   created_at:  string;
   updated_at:  string;

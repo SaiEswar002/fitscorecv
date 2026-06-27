@@ -35,7 +35,7 @@ function rowToResume(row: {
     user_id: row.user_id,
     title: row.title,
     template: row.template as ResumeTemplate,
-    status: row.status as "draft" | "complete",
+    status: row.status as "draft" | "complete" | "archived",
     // resume_data is written exclusively by this module as ResumeData,
     // so the cast is safe. Fallback to blank data if somehow null/malformed.
     resume_data: (row.resume_data as unknown as ResumeData) ?? makeBlankResumeData(),
@@ -103,7 +103,7 @@ export async function listResumes(): Promise<Resume[]> {
 /** Update resume metadata (title, template, status). */
 export async function updateResumeMeta(
   id: string,
-  patch: { title?: string; template?: ResumeTemplate; status?: "draft" | "complete" }
+  patch: { title?: string; template?: ResumeTemplate; status?: "draft" | "complete" | "archived" }
 ): Promise<void> {
   const { supabase } = await getAuthedClient();
 
@@ -200,18 +200,46 @@ export async function createNewResume(title = "My Resume"): Promise<string> {
   return createResume(title);
 }
 
-/** Get the most recent resume, or create one if none exist. Returns the ID. */
+/** Get the most recent NON-archived resume, or create one if none exist. Returns the ID. */
 export async function getOrCreateLatestResume(): Promise<string> {
   const { supabase } = await getAuthedClient();
 
   const { data } = await supabase
     .from("resumes")
     .select("id")
+    .neq("status", "archived")
     .order("updated_at", { ascending: false })
     .limit(1)
     .single();
 
   if (data?.id) return data.id;
   return createResume();
+}
+
+/** Archive a resume (soft-delete). Sets status to "archived". */
+export async function archiveResume(id: string): Promise<void> {
+  const { supabase } = await getAuthedClient();
+  const { error } = await supabase
+    .from("resumes")
+    .update({ status: "archived" })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard");
+}
+
+/** Restore an archived resume back to draft. */
+export async function unarchiveResume(id: string): Promise<void> {
+  const { supabase } = await getAuthedClient();
+  const { error } = await supabase
+    .from("resumes")
+    .update({ status: "draft" })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard");
+}
+
+/** Rename a resume title. */
+export async function renameResume(id: string, title: string): Promise<void> {
+  return updateResumeMeta(id, { title: title.trim() || "Untitled Resume" });
 }
 
